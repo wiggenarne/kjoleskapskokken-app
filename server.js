@@ -40,7 +40,7 @@ app.post('/api/generate-recipes', async (req, res) => {
     }
 });
 
-// **ENDELIG FIKS: Bytter til gratis bildemodell**
+// **ENDELIG KORREKSJON: Bytter til korrekt gratis bildemodell**
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -48,8 +48,8 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: 'Mangler prompt for bildegenerering.' });
         }
         
-        // Velger modellen som kan generere både tekst og bilder (gratis)
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-preview-05-20' });
+        // Bytter til den KORREKTE modellen for bildegenerering i gratis-tier
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-image-preview' });
 
         const fullPrompt = `Generer et fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet.`;
         
@@ -60,6 +60,7 @@ app.post('/api/generate-image', async (req, res) => {
         const imagePart = response.candidates[0].content.parts.find(part => part.inlineData);
 
         if (!imagePart) {
+            console.error("API respons manglet bilde-del:", response.candidates[0].content.parts);
             throw new Error('Modellen returnerte ikke et bilde.');
         }
 
@@ -97,5 +98,4 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
-
 
