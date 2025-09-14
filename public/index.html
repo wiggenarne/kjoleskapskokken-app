@@ -5,228 +5,181 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kjøleskaps-kokken</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* slate-50 */
+            background-color: #f0f4f8;
         }
-        .background-image {
-            background-image: url('https://storage.googleapis.com/maker-studio-project-media-prod/products/40893/58a50f75-7b0a-4b95-a226-c28341682d3f.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        .background-overlay {
-            background-color: rgba(248, 250, 252, 0.85); /* slate-50 med 85% opasitet */
-            backdrop-filter: blur(8px);
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         .spinner {
-            width: 56px;
-            height: 56px;
-            border: 6px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #4f46e5; /* indigo-600 */
+            width: 56px; height: 56px;
             border-radius: 50%;
+            border: 8px solid #e0e0e0;
+            border-top-color: #4f46e5;
             animation: spin 1s linear infinite;
         }
-        .modal {
-            transition: opacity 0.3s ease, transform 0.3s ease;
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .blinking-cursor {
+            display: inline-block;
+            width: 3px; height: 1.2rem;
+            background-color: #4f46e5;
+            animation: blink 1s step-end infinite;
         }
-        .modal.hidden {
-            opacity: 0;
-            transform: scale(0.95);
-            pointer-events: none;
-        }
-        .modal-content {
-            transition: transform 0.3s ease;
-        }
-        .tag {
-            transition: all 0.2s ease;
-        }
-        .meal-type-btn {
-            transition: all 0.2s ease-in-out;
-        }
-        .meal-type-btn.selected {
-            background-color: #4f46e5; /* indigo-600 */
-            color: white;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            transform: translateY(-2px);
-        }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="bg-slate-100 text-slate-800">
+    <div id="app-container" class="max-w-4xl mx-auto p-4 md:p-8">
 
-    <div class="background-image">
-        <div class="background-overlay min-h-screen flex flex-col items-center justify-center p-4">
-            <main id="app-container" class="w-full max-w-2xl mx-auto">
+        <!-- ===== 1. HJEMMESIDE: Legg til ingredienser ===== -->
+        <div id="home-view">
+            <header class="text-center mb-10">
+                <i class="ph ph-chef-hat text-7xl bg-gradient-to-br from-green-500 to-indigo-600 bg-clip-text text-transparent"></i>
+                <h1 class="text-6xl font-bold mt-2 bg-gradient-to-r from-green-600 to-indigo-600 bg-clip-text text-transparent">Kjøleskaps-kokken</h1>
+                <p class="text-slate-600 mt-4 text-xl">Åpne kjøleskapet, finn frem det du har, og la oss trylle frem ditt neste favorittmåltid sammen!</p>
+            </header>
 
-                <!-- ===== 1. HJEMSIDE: Legg til ingredienser ===== -->
-                <div id="home-view">
-                    <header class="text-center mb-10">
-                        <i class="ph ph-chef-hat text-7xl bg-gradient-to-br from-green-500 to-indigo-600 bg-clip-text text-transparent"></i>
-                        <h1 class="text-6xl font-bold mt-2 bg-gradient-to-r from-green-600 to-indigo-600 bg-clip-text text-transparent">Kjøleskaps-kokken</h1>
-                        <p class="text-slate-600 mt-4 text-xl">Åpne kjøleskapet, finn frem det du har, og la oss trylle frem ditt neste favorittmåltid sammen!</p>
-                    </header>
-
-                    <div class="bg-white p-6 rounded-2xl shadow-lg">
-                        <div class="mb-4">
-                            <div id="ingredient-req-message" class="p-3 rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors duration-300 mb-4">
-                                <!-- Melding om ingredienskrav fylles inn av JS -->
-                            </div>
-                            <div class="flex gap-2">
-                                <input type="text" id="ingredient-input" placeholder="F.eks. kylling, tomat, fløte..." class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                                <button id="add-ingredient-btn" class="bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Legg til</button>
-                            </div>
-                        </div>
-
-                        <div id="ingredients-list" class="flex flex-wrap gap-2 mb-6">
-                            <!-- Ingredienser legges til her -->
-                        </div>
-                        
-                        <div id="meal-type-selector" class="mb-6">
-                            <label class="block text-sm font-medium text-slate-700 mb-2">Velg type måltid:</label>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <button data-meal="frokost" class="meal-type-btn w-full py-2 border border-slate-300 rounded-lg font-semibold text-slate-700 hover:bg-slate-100">Frokost</button>
-                                <button data-meal="lunsj" class="meal-type-btn w-full py-2 border border-slate-300 rounded-lg font-semibold text-slate-700 hover:bg-slate-100">Lunsj</button>
-                                <button data-meal="middag" class="meal-type-btn w-full py-2 border border-slate-300 rounded-lg font-semibold text-slate-700 hover:bg-slate-100">Middag</button>
-                                <button data-meal="kveldsmat" class="meal-type-btn w-full py-2 border border-slate-300 rounded-lg font-semibold text-slate-700 hover:bg-slate-100">Kveldsmat</button>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                             <div>
-                                <label for="num-people" class="block text-sm font-medium text-slate-700 mb-1">Antall personer:</label>
-                                <input type="number" id="num-people" value="2" min="1" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            </div>
-                             <div>
-                                <label for="num-recipes" class="block text-sm font-medium text-slate-700 mb-1">Antall oppskriftsforslag: <span class="font-normal text-slate-500">(maks 3)</span></label>
-                                <input type="number" id="num-recipes" value="3" min="1" max="3" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            </div>
-                            <div>
-                                <label for="calories" class="block text-sm font-medium text-slate-700 mb-1">Ca. kalorier (valgfritt):</label>
-                                <input type="number" id="calories" placeholder="F.eks. 600" min="0" step="50" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            </div>
-                            <div>
-                                <label for="protein" class="block text-sm font-medium text-slate-700 mb-1">Ca. protein (g) (valgfritt):</label>
-                                <input type="number" id="protein" placeholder="F.eks. 30" min="0" step="5" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            </div>
-                        </div>
-                        <button id="find-recipes-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition flex items-center justify-center gap-2 text-lg shadow-lg disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
-                            <i class="ph ph-magic-wand"></i> Finn Oppskrifter!
-                        </button>
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <div class="mb-4">
+                    <div id="ingredient-req-message" class="p-3 mb-4 rounded-lg flex items-center gap-3 text-sm transition-all">
+                        <i class="ph-fill ph-info text-2xl"></i>
+                        <span class="font-semibold"></span>
                     </div>
-                    <div id="saved-recipes-link-container" class="text-center mt-8 hidden">
-                        <button onclick="showView('saved-view')" class="bg-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition shadow-lg flex items-center justify-center gap-2 mx-auto transform hover:scale-105">
-                            <i class="ph-fill ph-heart"></i> Mine Lagrede Oppskrifter
-                        </button>
+                    <div class="flex gap-2">
+                        <input type="text" id="ingredient-input" placeholder="F.eks. kylling, tomat, fløte..." class="flex-grow px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        <button id="add-ingredient-btn" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Legg til</button>
                     </div>
                 </div>
 
-                <!-- ===== 2. RESULTATSIDE: Velg en oppskrift ===== -->
-                <div id="results-view" class="hidden">
-                    <div class="flex justify-between items-center mb-6">
-                         <button onclick="showView('home-view')" class="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold">
-                            <i class="ph ph-arrow-left"></i> Tilbake til ingredienser
-                        </button>
-                         <div id="results-saved-recipes-link-container" class="hidden">
-                            <button onclick="showView('saved-view')" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition shadow-md flex items-center justify-center gap-2 transform hover:scale-105 text-sm">
-                                <i class="ph-fill ph-heart"></i> Mine Favoritter
-                            </button>
-                        </div>
-                    </div>
-                    <h2 class="text-3xl font-bold text-center mb-6">Her er noen forslag...</h2>
-                    <div id="results-loader" class="text-center py-10 hidden">
-                        <div class="spinner mx-auto"></div>
-                        <p class="mt-4 font-semibold text-slate-600">Kjøleskaps-kokken tenker...</p>
-                    </div>
-                    <div id="results-error" class="hidden"></div>
-                    <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Resultater fylles inn her -->
+                <div id="ingredients-list" class="flex flex-wrap gap-2 mb-6 min-h-[40px]"></div>
+
+                 <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Velg type måltid:</label>
+                    <div id="meal-type-selector" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <button data-meal="Frokost" class="meal-btn w-full py-2 px-3 border rounded-lg transition">Frokost</button>
+                        <button data-meal="Lunsj" class="meal-btn w-full py-2 px-3 border rounded-lg transition">Lunsj</button>
+                        <button data-meal="Middag" class="meal-btn w-full py-2 px-3 border rounded-lg transition">Middag</button>
+                        <button data-meal="Kveldsmat" class="meal-btn w-full py-2 px-3 border rounded-lg transition">Kveldsmat</button>
                     </div>
                 </div>
 
-                <!-- ===== 3. DETALJSIDE: Se oppskrift ===== -->
-                <div id="details-view" class="hidden bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-                     <div class="flex justify-between items-center mb-6">
-                        <button onclick="showView(previousView)" class="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold">
-                            <i class="ph ph-arrow-left"></i> Tilbake
-                        </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="num-persons" class="block text-sm font-medium text-slate-700 mb-1">Antall personer:</label>
+                        <input type="number" id="num-persons" value="2" min="1" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                     </div>
-                    <div id="details-content">
-                        <!-- Innhold fylles inn her -->
+                    <div>
+                        <label for="num-recipes" class="block text-sm font-medium text-slate-700 mb-1">Antall oppskriftsforslag: <span class="font-normal text-slate-500">(maks 3)</span></label>
+                        <input type="number" id="num-recipes" value="3" min="1" max="3" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label for="calories" class="block text-sm font-medium text-slate-700 mb-1">Ca. kalorier (valgfritt):</label>
+                        <input type="number" id="calories" placeholder="F.eks. 600" min="0" step="50" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label for="protein" class="block text-sm font-medium text-slate-700 mb-1">Ca. protein (g) (valgfritt):</label>
+                        <input type="number" id="protein" placeholder="F.eks. 30" min="0" step="5" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                     </div>
                 </div>
 
-                <!-- ===== 4. LAGREDE OPPSKRIFTER ===== -->
-                 <div id="saved-view" class="hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <button onclick="showView('home-view')" class="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold">
-                            <i class="ph ph-arrow-left"></i> Tilbake til startsiden
-                        </button>
-                    </div>
-                    <h2 class="text-3xl font-bold text-center mb-8">Mine Lagrede Oppskrifter</h2>
-                    <div id="no-saved-recipes" class="text-center py-10 bg-white rounded-lg shadow hidden">
-                        <i class="ph ph-bookmarks text-5xl text-slate-400"></i>
-                        <p class="mt-4 text-slate-600 font-semibold">Du har ingen lagrede oppskrifter enda.</p>
-                        <p class="text-slate-500">Lagre en oppskrift ved å trykke på hjertet!</p>
-                    </div>
-                    <div id="saved-recipes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Lagrede oppskrifter fylles inn her -->
-                    </div>
-                </div>
-            </main>
+                <button id="find-recipes-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition flex items-center justify-center gap-2 text-lg shadow-lg disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
+                    <i class="ph ph-magic-wand"></i> Finn Oppskrifter!
+                </button>
+            </div>
+            <div id="saved-recipes-link-container" class="text-center mt-8 hidden">
+                <button onclick="showView('saved-view')" class="bg-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition shadow-lg flex items-center justify-center gap-2 mx-auto transform hover:scale-105">
+                    <i class="ph-fill ph-heart"></i> Mine Lagrede Oppskrifter
+                </button>
+            </div>
         </div>
-    </div>
-    
-    <!-- Flytende AI-hjelp knapp -->
-    <button id="ai-help-fab" class="fixed bottom-6 right-6 bg-indigo-600 text-white rounded-full p-4 shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition transform hover:scale-110">
-        <i class="ph ph-question text-3xl"></i>
+
+        <!-- ===== 2. RESULTATSIDE: Velg en oppskrift ===== -->
+        <div id="results-view" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="showView('home-view')" class="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold">
+                    <i class="ph ph-arrow-left"></i> Tilbake til ingredienser
+                </button>
+                <div id="results-saved-recipes-link-container" class="hidden">
+                    <button onclick="showView('saved-view')" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition shadow-md flex items-center justify-center gap-2 transform hover:scale-105 text-sm">
+                        <i class="ph-fill ph-heart"></i> Mine Favoritter
+                    </button>
+                </div>
+            </div>
+            <h2 class="text-3xl font-bold text-center mb-6">Her er noen forslag...</h2>
+            <div id="results-loader" class="text-center py-10 hidden">
+                <div class="spinner mx-auto"></div>
+                <p class="mt-4 text-slate-600 font-semibold">Kjøleskaps-kokken tenker...</p>
+            </div>
+            <div id="results-error" class="text-center py-10 hidden bg-red-100 text-red-700 p-4 rounded-lg"></div>
+            <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- ===== 3. DETALJSIDE: Se oppskrift ===== -->
+        <div id="details-view" class="hidden bg-white p-6 rounded-2xl shadow-lg">
+            <div class="flex justify-between items-start mb-4">
+                 <button id="details-back-btn" class="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold mb-4">
+                    <i class="ph ph-arrow-left"></i> Tilbake
+                </button>
+                <div id="save-button-container"></div>
+            </div>
+            <div id="recipe-details-content"></div>
+        </div>
+
+        <!-- ===== 4. LAGRET-SIDE: Se favoritter ===== -->
+        <div id="saved-view" class="hidden">
+            <button onclick="showView('home-view')" class="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold mb-6">
+                <i class="ph ph-arrow-left"></i> Tilbake til startsiden
+            </button>
+            <h2 class="text-3xl font-bold text-center mb-8">Mine Lagrede Oppskrifter</h2>
+            <div id="no-saved-recipes" class="text-center py-10 bg-white rounded-2xl shadow-lg hidden">
+                <i class="ph ph-heart-break text-6xl text-slate-400"></i>
+                <p class="mt-4 text-slate-600">Du har ingen lagrede favoritter ennå.</p>
+            </div>
+            <div id="saved-recipes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+    </div> <!-- End App Container -->
+
+    <!-- Global AI Hjelp Knapp -->
+    <button id="ai-help-fab" onclick="openAiHelpModal()" class="fixed bottom-6 right-6 bg-indigo-600 text-white w-16 h-16 rounded-full shadow-xl flex items-center justify-center transform hover:scale-110 transition">
+        <i class="ph-fill ph-question text-3xl"></i>
     </button>
     
     <!-- AI Hjelp Modal -->
-    <div id="ai-help-modal" class="modal hidden fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4">
-        <div class="modal-content bg-white w-full max-w-lg rounded-2xl shadow-2xl transform transition-all p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="ai-modal-title" class="text-xl font-bold">Spør Kjøleskaps-kokken</h3>
-                <button onclick="toggleModal('ai-help-modal', false)" class="text-slate-400 hover:text-slate-600">
-                    <i class="ph ph-x text-2xl"></i>
-                </button>
+    <div id="ai-help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[80vh]">
+            <header class="p-4 border-b flex justify-between items-center">
+                <h3 id="ai-modal-title" class="text-lg font-bold">Spør Kjøleskaps-kokken</h3>
+                <button onclick="toggleModal('ai-help-modal', false)" class="text-slate-400 hover:text-slate-800 text-2xl">&times;</button>
+            </header>
+            <div id="ai-chat-box" class="p-4 flex-grow overflow-y-auto space-y-4">
+                <!-- Chat-meldinger havner her -->
             </div>
-            <div id="ai-chat-box" class="h-80 overflow-y-auto bg-slate-50 p-4 rounded-lg mb-4 flex flex-col gap-4">
-                <!-- Chat-meldinger legges til her -->
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="ai-question-input" placeholder="Spør om hva som helst..." class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                <button id="ai-send-btn" class="bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Send</button>
-            </div>
+            <footer class="p-4 border-t">
+                <form id="ai-question-form" class="flex gap-2">
+                    <input type="text" id="ai-question-input" placeholder="Spør om hva som helst..." class="flex-grow px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    <button type="submit" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">Send</button>
+                </form>
+                 <div id="ai-chat-loader" class="text-center pt-4 hidden">
+                    <span class="text-slate-500 font-medium">Kokken tenker</span><span class="blinking-cursor"></span>
+                </div>
+            </footer>
         </div>
     </div>
 
-<script>
-    // Polyfill for structuredClone for eldre nettlesere
-    if (!window.structuredClone) {
-        window.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
-    }
-    
-    // Vent til hele HTML-dokumentet er lastet og klart før skriptet kjører
-    document.addEventListener('DOMContentLoaded', () => {
-        // ---------- STATE (Appens minne) ----------
+
+    <script>
+        // ---------- STATE MANAGEMENT ----------
         let ingredients = [];
-        const MIN_INGREDIENTS = 3;
         let generatedRecipes = [];
         let selectedRecipe = null;
         let savedRecipes = [];
-        let previousView = 'home-view';
-        let currentView = 'home-view';
         let aiConversation = [];
+        const MIN_INGREDIENTS = 3;
+        let cameFromView = 'home-view'; // Holder styr på hvor brukeren kom fra
 
-        // ---------- DOM ELEMENTS (Koblinger til HTML) ----------
+        // ---------- DOM ELEMENTS ----------
         const views = {
             'home-view': document.getElementById('home-view'),
             'results-view': document.getElementById('results-view'),
@@ -238,285 +191,258 @@
         const ingredientsList = document.getElementById('ingredients-list');
         const findRecipesBtn = document.getElementById('find-recipes-btn');
         const ingredientReqMessage = document.getElementById('ingredient-req-message');
-        const mealTypeSelector = document.getElementById('meal-type-selector');
+        
         const resultsContainer = document.getElementById('results-container');
         const resultsLoader = document.getElementById('results-loader');
         const resultsError = document.getElementById('results-error');
-        const detailsContent = document.getElementById('details-content');
+        
+        const recipeDetailsContent = document.getElementById('recipe-details-content');
+        const saveButtonContainer = document.getElementById('save-button-container');
+        const detailsBackButton = document.getElementById('details-back-btn');
+
         const savedRecipesContainer = document.getElementById('saved-recipes-container');
         const noSavedRecipes = document.getElementById('no-saved-recipes');
         const savedRecipesLinkContainer = document.getElementById('saved-recipes-link-container');
         const resultsSavedRecipesLinkContainer = document.getElementById('results-saved-recipes-link-container');
-        const aiHelpFab = document.getElementById('ai-help-fab');
+        
         const aiHelpModal = document.getElementById('ai-help-modal');
         const aiModalTitle = document.getElementById('ai-modal-title');
         const aiChatBox = document.getElementById('ai-chat-box');
+        const aiQuestionForm = document.getElementById('ai-question-form');
         const aiQuestionInput = document.getElementById('ai-question-input');
-        const aiSendBtn = document.getElementById('ai-send-btn');
+        const aiChatLoader = document.getElementById('ai-chat-loader');
 
-        // ---------- FUNKSJONER ----------
+        const mealTypeSelector = document.getElementById('meal-type-selector');
 
-        // Bytter mellom de ulike "sidene" i appen
-        const showView = (viewName) => {
-            if (!views[viewName]) {
-                console.error(`View '${viewName}' finnes ikke.`);
-                return;
-            }
-            // Lagrer den forrige siden så "tilbake"-knappen fungerer
-            if (currentView !== viewName) {
-                previousView = currentView;
-            }
-            currentView = viewName;
-
-            // Gjemmer alle sidene, og viser kun den vi vil se
-            Object.values(views).forEach(view => view.classList.add('hidden'));
-            views[viewName].classList.remove('hidden');
-
-            // Spesiallogikk for "lagrede oppskrifter"-siden
-            if (viewName === 'saved-view') {
-                renderSavedRecipes();
-            }
-            window.scrollTo(0, 0); // Scroller til toppen av siden
-        }
-
-        // Viser ingrediensene som er lagt til
-        const renderIngredients = () => {
-            ingredientsList.innerHTML = '';
-            ingredients.forEach((ing, index) => {
-                const tag = document.createElement('div');
-                tag.className = 'tag bg-indigo-100 text-indigo-800 text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2';
-                tag.innerHTML = `
-                    <span>${ing}</span>
-                    <button data-index="${index}" class="remove-ing-btn text-indigo-400 hover:text-indigo-600">
-                        <i class="ph ph-x-circle"></i>
-                    </button>
-                `;
-                ingredientsList.appendChild(tag);
-            });
-            updateFindRecipesButton();
-        }
-
-        // Oppdaterer "Finn Oppskrifter"-knappen og meldingen over
-        const updateFindRecipesButton = () => {
-            const remaining = MIN_INGREDIENTS - ingredients.length;
-            if (remaining > 0) {
-                findRecipesBtn.disabled = true;
-                ingredientReqMessage.innerHTML = `
-                    <i class="ph ph-info text-teal-700"></i>
-                    <span>Legg til minst <strong>${remaining}</strong> ingrediens(er) til for å få best resultat.</span>
-                `;
-                ingredientReqMessage.className = 'p-3 rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors duration-300 mb-4 bg-teal-50 text-teal-800 border border-teal-200';
-            } else {
-                findRecipesBtn.disabled = false;
-                ingredientReqMessage.innerHTML = `
-                    <i class="ph ph-check-circle text-green-700"></i>
-                    <span>Du er klar! Trykk på knappen nedenfor.</span>
-                `;
-                 ingredientReqMessage.className = 'p-3 rounded-lg flex items-center justify-center gap-3 text-sm font-medium transition-colors duration-300 mb-4 bg-green-50 text-green-800 border border-green-200';
-            }
-        }
-        
-        // Finner ut hvilket måltid som er valgt
-        const getSelectedMealType = () => {
-            const selectedBtn = mealTypeSelector.querySelector('.selected');
-            return selectedBtn ? selectedBtn.dataset.meal : 'middag';
-        }
-        
-        // Velger automatisk måltid basert på klokkeslett
-        const setDefaultMealType = () => {
-            const hour = new Date().getHours();
-            let meal = 'middag'; // Standard
-            if (hour >= 5 && hour < 11) meal = 'frokost';
-            else if (hour >= 11 && hour < 16) meal = 'lunsj';
-            else if (hour >= 16 && hour < 21) meal = 'middag';
-            else meal = 'kveldsmat';
+        // ---------- INITIALIZATION ----------
+        window.onload = () => {
+            addIngredientBtn.addEventListener('click', handleAddIngredient);
+            ingredientInput.addEventListener('keyup', (e) => e.key === 'Enter' && handleAddIngredient());
+            findRecipesBtn.addEventListener('click', handleFindRecipes);
+            mealTypeSelector.addEventListener('click', handleMealTypeSelect);
+            aiQuestionForm.addEventListener('submit', handleAiSubmit);
+            detailsBackButton.addEventListener('click', () => showView(cameFromView));
             
-            mealTypeSelector.querySelectorAll('.meal-type-btn').forEach(btn => {
-                btn.classList.toggle('selected', btn.dataset.meal === meal);
-            });
+            loadSavedRecipes();
+            updateIngredientReqMessage();
+            setDefaultMealType();
+        };
+
+        // ---------- CORE FUNCTIONS ----------
+
+        function showView(viewId, fromView = null) {
+            if(fromView) {
+                cameFromView = fromView;
+            }
+            Object.values(views).forEach(view => view.classList.add('hidden'));
+            if (views[viewId]) {
+                views[viewId].classList.remove('hidden');
+            }
+            window.scrollTo(0, 0);
         }
 
-        // Kjører når man trykker "Finn Oppskrifter"
-        const handleFindRecipes = async () => {
-            showView('results-view');
+        function handleAddIngredient() {
+            const ingredientText = ingredientInput.value.trim();
+            if (ingredientText && !ingredients.includes(ingredientText.toLowerCase())) {
+                ingredients.push(ingredientText.toLowerCase());
+                renderIngredients();
+                updateIngredientReqMessage();
+                ingredientInput.value = '';
+            }
+            ingredientInput.focus();
+        }
+
+        async function handleFindRecipes() {
+            showView('results-view', 'home-view');
             resultsLoader.classList.remove('hidden');
             resultsError.classList.add('hidden');
             resultsContainer.innerHTML = '';
 
-            const numPeople = document.getElementById('num-people').value;
-            const numRecipes = document.getElementById('num-recipes').value;
-            const calories = document.getElementById('calories').value;
-            const protein = document.getElementById('protein').value;
-            const mealType = getSelectedMealType();
-
             try {
-                const recipesData = await generateRecipes(numPeople, numRecipes, calories, protein, mealType);
-                generatedRecipes = recipesData.recipes;
-                
-                resultsLoader.classList.add('hidden');
-                renderResults(generatedRecipes);
-
+                const recipes = await generateRecipes();
+                generatedRecipes = recipes;
+                renderRecipeResults(recipes);
             } catch (error) {
                 console.error("Feil ved henting av oppskrifter:", error);
-                resultsLoader.classList.add('hidden');
+                resultsError.textContent = `Oops! Noe gikk galt: ${error.message}`;
                 resultsError.classList.remove('hidden');
-                resultsError.innerHTML = `
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
-                        <strong class="font-bold">Oops!</strong>
-                        <span class="block sm:inline">Noe gikk galt: ${error.message}</span>
-                    </div>`;
+            } finally {
+                resultsLoader.classList.add('hidden');
             }
         }
+        
+        // ---------- RENDER FUNCTIONS ----------
 
-        // Generell funksjon for å snakke med vår backend-server
-        const callApi = async (endpoint, body) => {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            if (!response.ok) {
-                 let errorBody = `Serveren svarte med status ${response.status}.`;
-                 try {
-                     const errorJson = await response.json();
-                     errorBody = errorJson.error?.message || JSON.stringify(errorJson);
-                 } catch (e) {
-                     try {
-                         errorBody = await response.text();
-                     } catch (textError) {
-                          errorBody = `Serveren svarte med status ${response.status}, men responsen kunne ikke leses.`;
-                     }
-                 }
-                 throw new Error(`API-feil: ${errorBody}`);
-            }
-            return response.json();
+        function renderIngredients() {
+            ingredientsList.innerHTML = ingredients.map(ing => `
+                <div class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full flex items-center gap-2">
+                    <span>${ing}</span>
+                    <button onclick="removeIngredient('${ing}')" class="text-slate-500 hover:text-slate-800">&times;</button>
+                </div>
+            `).join('');
         }
-
-        // Forbereder og sender forespørsel om å lage oppskrifter
-        const generateRecipes = async (numPeople, numRecipes, calories, protein, mealType) => {
-             const schema = {
-                type: "OBJECT",
-                properties: {
-                    recipes: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                title: { type: "STRING" },
-                                description: { type: "STRING" },
-                                servings: { type: "INTEGER" },
-                                prep_time: { type: "STRING" },
-                                ingredients: { type: "ARRAY", items: { type: "STRING" } },
-                                method: { type: "ARRAY", items: { type: "STRING" } },
-                                nutrition: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        calories: { type: "STRING" },
-                                        protein: { type: "STRING" },
-                                        carbs: { type: "STRING" },
-                                        fat: { type: "STRING" }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-            
-            let userPrompt = `Jeg har følgende ingredienser: ${ingredients.join(', ')}. Lag ${numRecipes} forslag til ${mealType} for ${numPeople} personer.`;
-            if (calories) userPrompt += ` Hver porsjon bør være rundt ${calories} kalorier.`;
-            if (protein) userPrompt += ` Hver porsjon bør ha rundt ${protein} gram protein.`;
-            
-            const systemPrompt = "Du er en kreativ og hjelpsom kokk. Gi meg oppskrifter i JSON-format basert på schema. Alle felter må fylles ut. Ingredienslisten må være komplett for hele retten. Beskrivelsen skal være kort og fristende.";
-
-            const result = await callApi('/api/generate', { userPrompt, systemPrompt, schema });
-            return JSON.parse(result.text);
-        }
-
-        // Viser resultatene på resultatsiden
-        const renderResults = (recipes) => {
-            resultsContainer.innerHTML = '';
-            recipes.forEach((recipe, index) => {
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-lg shadow overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-transform';
-                card.innerHTML = `
-                    <div class="w-full h-48 bg-slate-200 flex items-center justify-center">
-                         <img src="https://placehold.co/600x400/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/fecaca/991b1b?text=Bildefeil';">
+        
+        function renderRecipeResults(recipes) {
+            resultsContainer.innerHTML = recipes.map((recipe, index) => `
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden cursor-pointer transform hover:-translate-y-1 transition" onclick="selectRecipe(${index})">
+                    <div class="w-full h-48 bg-slate-200 flex items-center justify-center text-slate-400">
+                        <img id="img-${index}" src="https://placehold.co/400x300/e2e8f0/94a3b8?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover">
                     </div>
                     <div class="p-4">
                         <h3 class="font-bold text-lg">${recipe.title}</h3>
                     </div>
-                `;
-                card.addEventListener('click', () => selectRecipe(index, recipes));
-                resultsContainer.appendChild(card);
+                </div>
+            `).join('');
+
+            recipes.forEach((recipe, index) => {
+                generateImage(recipe.title, `img-${index}`);
             });
         }
         
-        // Kjører når man velger en spesifikk oppskrift
-        const selectRecipe = (index, recipeList) => {
-            selectedRecipe = recipeList[index];
-            renderRecipeDetails();
-            showView('details-view');
-        }
+        function renderRecipeDetails() {
+            if (!selectedRecipe) return;
 
-        // Viser detaljene for en valgt oppskrift
-        const renderRecipeDetails = () => {
-            const recipe = selectedRecipe;
-            if (!recipe) return;
-
-            const isSaved = savedRecipes.some(r => r.title === recipe.title);
-
+            const isSaved = savedRecipes.some(r => r.title === selectedRecipe.title);
+            
             let saveButtonHtml = '';
             if (isSaved) {
-                saveButtonHtml = `
-                <button class="bg-green-100 text-green-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm cursor-default">
-                    <i class="ph-fill ph-check-circle"></i> Lagret
-                </button>`;
+                saveButtonHtml = `<button class="bg-green-100 text-green-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm cursor-default"><i class="ph-fill ph-check-circle"></i> Lagret</button>`;
             } else {
-                saveButtonHtml = `
-                 <button onclick="saveRecipe()" class="bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition flex items-center justify-center gap-2 text-sm">
-                    <i class="ph-fill ph-heart"></i> Lagre Oppskrift
-                </button>`;
+                saveButtonHtml = `<button onclick="saveRecipe()" class="bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition flex items-center justify-center gap-2 text-sm"><i class="ph-fill ph-heart"></i> Lagre Oppskrift</button>`;
             }
+            saveButtonContainer.innerHTML = saveButtonHtml;
 
-            detailsContent.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-3xl font-bold">${recipe.title}</h2>
-                        <p class="text-slate-500 mt-1">${recipe.description}</p>
-                    </div>
-                    ${saveButtonHtml}
+            // Oppdater tilbakeknappens tekst basert på hvor brukeren kom fra
+            detailsBackButton.innerHTML = `<i class="ph ph-arrow-left"></i> Tilbake til ${cameFromView === 'saved-view' ? 'favoritter' : 'forslag'}`;
+
+            recipeDetailsContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold mb-2">${selectedRecipe.title}</h2>
+                <p class="text-slate-600 mb-6">${selectedRecipe.description}</p>
+                <div class="w-full h-64 md:h-80 rounded-xl bg-slate-200 mb-6 overflow-hidden">
+                     <img id="details-img" src="https://placehold.co/600x400/e2e8f0/94a3b8?text=${encodeURIComponent(selectedRecipe.title)}" alt="${selectedRecipe.title}" class="w-full h-full object-cover">
                 </div>
-                
-                <div class="w-full h-64 md:h-80 rounded-lg bg-slate-200 mb-6 overflow-hidden">
-                    <img src="https://placehold.co/800x600/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover">
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8">
-                    <div><span class="font-bold block text-lg">${recipe.prep_time}</span><span class="text-sm text-slate-500">Tid</span></div>
-                    <div><span class="font-bold block text-lg">${recipe.servings}</span><span class="text-sm text-slate-500">Porsjoner</span></div>
-                    <div><span class="font-bold block text-lg">${recipe.nutrition.calories}</span><span class="text-sm text-slate-500">Kalorier</span></div>
+                <div class="flex justify-around text-center mb-8 border-y py-4">
+                    <div><p class="font-bold text-lg">${selectedRecipe.prep_time}</p><p class="text-sm text-slate-500">Tid</p></div>
+                    <div><p class="font-bold text-lg">${selectedRecipe.servings}</p><p class="text-sm text-slate-500">Personer</p></div>
+                    <div><p class="font-bold text-lg">${selectedRecipe.calories_per_serving} kcal</p><p class="text-sm text-slate-500">Kalorier</p></div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <h3 class="text-xl font-bold mb-4 border-b-2 border-indigo-500 pb-2">Ingredienser</h3>
+                        <h3 class="text-2xl font-bold mb-4">Ingredienser</h3>
                         <ul class="list-disc list-inside space-y-2">
-                           ${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                            ${selectedRecipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
                         </ul>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold mb-4 border-b-2 border-indigo-500 pb-2">Fremgangsmåte</h3>
+                        <h3 class="text-2xl font-bold mb-4">Fremgangsmåte</h3>
                         <ol class="list-decimal list-inside space-y-3">
-                            ${recipe.method.map(step => `<li>${step}</li>`).join('')}
+                             ${selectedRecipe.method.map(step => `<li>${step}</li>`).join('')}
                         </ol>
                     </div>
-                </div>
+                </div>`;
+            generateImage(selectedRecipe.title, 'details-img');
+        }
+
+        // ---------- HELPER FUNCTIONS ----------
+
+        function removeIngredient(ingredientToRemove) {
+            ingredients = ingredients.filter(ing => ing !== ingredientToRemove);
+            renderIngredients();
+            updateIngredientReqMessage();
+        }
+        
+        function updateIngredientReqMessage() {
+            const remaining = MIN_INGREDIENTS - ingredients.length;
+            const messageEl = ingredientReqMessage.querySelector('span');
+            if (remaining > 0) {
+                messageEl.textContent = `Legg til minst ${remaining} ingrediens${remaining > 1 ? 'er' : ''} for å få best resultat.`;
+                ingredientReqMessage.className = 'p-3 mb-4 rounded-lg flex items-center gap-3 text-sm transition-all bg-indigo-100 text-indigo-800';
+                findRecipesBtn.disabled = true;
+            } else {
+                messageEl.textContent = 'Du er klar! Trykk på knappen for å finne oppskrifter.';
+                ingredientReqMessage.className = 'p-3 mb-4 rounded-lg flex items-center gap-3 text-sm transition-all bg-green-100 text-green-800';
+                findRecipesBtn.disabled = false;
+            }
+        }
+        
+        function selectRecipe(index) {
+            selectedRecipe = generatedRecipes[index];
+            renderRecipeDetails();
+            showView('details-view', 'results-view');
+        }
+
+        // ---------- API CALLS ----------
+
+        async function generateRecipes() {
+            const selectedMealBtn = mealTypeSelector.querySelector('.bg-indigo-600');
+            const mealType = selectedMealBtn ? selectedMealBtn.dataset.meal : 'Middag';
+            
+            const userPrompt = `
+                Ingredienser: ${ingredients.join(', ')}.
+                Antall personer: ${document.getElementById('num-persons').value}.
+                Antall oppskriftsforslag: ${document.getElementById('num-recipes').value}.
+                Måltidstype: ${mealType}.
+                ${document.getElementById('calories').value ? `Omtrentlige kalorier per porsjon: ${document.getElementById('calories').value}.` : ''}
+                ${document.getElementById('protein').value ? `Omtrentlig protein i gram per porsjon: ${document.getElementById('protein').value}.` : ''}
             `;
+            const systemPrompt = "Du er en kreativ og hjelpsom kokk. Gi meg oppskrifter i JSON-format basert på schema. Alle felter må fylles ut. Ingredienslisten må være komplett for hele retten. Beskrivelsen skal være kort og fristende.";
+            const schema = {
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        title: { type: "STRING" },
+                        description: { type: "STRING" },
+                        prep_time: { type: "STRING" },
+                        servings: { type: "NUMBER" },
+                        calories_per_serving: { type: "NUMBER" },
+                        ingredients: { type: "ARRAY", items: { type: "STRING" } },
+                        method: { type: "ARRAY", items: { type: "STRING" } },
+                    }
+                }
+            };
+            
+            const response = await fetch('/api/generate-recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userPrompt, systemPrompt, schema })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Noe gikk galt på serveren.');
+            }
+            
+            const data = await response.json();
+            return JSON.parse(data.text);
+        }
+
+        async function generateImage(title, imgElementId) {
+            const imgElement = document.getElementById(imgElementId);
+            if (!imgElement) return;
+
+            try {
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: title })
+                });
+
+                if (!response.ok) throw new Error('Kunne ikke generere bilde.');
+
+                const data = await response.json();
+                if(data.base64Image) {
+                    imgElement.src = `data:image/png;base64,${data.base64Image}`;
+                }
+            } catch (error) {
+                console.error("Bildegenereringsfeil:", error);
+                imgElement.alt = "Bildefeil";
+            }
         }
         
         // ---------- LAGREDE OPPSKRIFTER FUNKSJONER ----------
-        const loadSavedRecipes = () => {
+        function loadSavedRecipes() {
             try {
                 const recipesJSON = localStorage.getItem('savedRecipes');
                 savedRecipes = recipesJSON ? JSON.parse(recipesJSON) : [];
@@ -524,7 +450,6 @@
                 const hasSavedRecipes = savedRecipes.length > 0;
                 savedRecipesLinkContainer.classList.toggle('hidden', !hasSavedRecipes);
                 resultsSavedRecipesLinkContainer.classList.toggle('hidden', !hasSavedRecipes);
-
             } catch (error) {
                 console.error("Feil ved lasting av lagrede oppskrifter:", error);
                 localStorage.removeItem('savedRecipes');
@@ -532,178 +457,169 @@
             }
         }
         
-        const saveRecipe = () => {
+        async function saveRecipe() {
             if (selectedRecipe && !savedRecipes.some(r => r.title === selectedRecipe.title)) {
-                savedRecipes.push(structuredClone(selectedRecipe));
-                localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
-                renderRecipeDetails(); 
-                loadSavedRecipes();
+                
+                // Hent bilde-URL før lagring
+                const imgElement = document.getElementById('details-img');
+                if (imgElement && imgElement.src.startsWith('data:image')) {
+                    selectedRecipe.imageUrl = imgElement.src;
+                }
+
+                savedRecipes.push(selectedRecipe);
+                persistSavedRecipes();
+                renderRecipeDetails(); // Re-render for å vise "Lagret"-status
             }
         }
         
-        const removeSavedRecipe = (index) => {
-            savedRecipes.splice(index, 1);
-            localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
+        function removeSavedRecipe(title) {
+            savedRecipes = savedRecipes.filter(r => r.title !== title);
+            persistSavedRecipes();
             renderSavedRecipes();
-            loadSavedRecipes();
         }
         
-        const renderSavedRecipes = () => {
-            savedRecipesContainer.innerHTML = '';
+        function persistSavedRecipes() {
+            try {
+                localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
+                loadSavedRecipes();
+            } catch (error) {
+                console.error("Feil ved lagring av oppskrifter:", error);
+            }
+        }
+
+        function renderSavedRecipes() {
+            loadSavedRecipes();
             const hasRecipes = savedRecipes.length > 0;
             noSavedRecipes.classList.toggle('hidden', hasRecipes);
-
-            savedRecipes.forEach((recipe, index) => {
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-lg shadow overflow-hidden group';
-                card.innerHTML = `
-                     <div class="w-full h-48 bg-slate-200 overflow-hidden relative">
-                         <img src="https://placehold.co/600x400/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-300" onclick="selectAndShowSavedRecipe(${index})">
-                         <button class="absolute top-2 right-2 bg-white text-red-500 rounded-full p-1.5 shadow hover:bg-red-100 transition" onclick="removeSavedRecipe(${index})">
-                            <i class="ph-fill ph-trash"></i>
-                         </button>
+            savedRecipesContainer.classList.toggle('hidden', !hasRecipes);
+            
+            if (hasRecipes) {
+                 savedRecipesContainer.innerHTML = savedRecipes.map(recipe => `
+                    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+                        <div class="w-full h-48 bg-slate-200">
+                             <img src="${recipe.imageUrl || `https://placehold.co/400x300/e2e8f0/94a3b8?text=${encodeURIComponent(recipe.title)}`}" alt="${recipe.title}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4 flex flex-col h-full">
+                            <h3 class="font-bold text-lg mb-2">${recipe.title}</h3>
+                            <div class="mt-auto flex justify-between items-center pt-2">
+                                <button onclick="viewSavedRecipe('${recipe.title}')" class="text-indigo-600 font-semibold text-sm">Se oppskrift</button>
+                                <button onclick="removeSavedRecipe('${recipe.title}')" class="text-red-500 hover:text-red-700 text-sm">Slett</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-4 cursor-pointer" onclick="selectAndShowSavedRecipe(${index})">
-                        <h3 class="font-bold text-lg truncate">${recipe.title}</h3>
-                    </div>
-                `;
-                savedRecipesContainer.appendChild(card);
-            });
-        }
-        
-        const selectAndShowSavedRecipe = (index) => {
-            selectRecipe(index, savedRecipes);
-        }
-        
-        // ---------- AI HJELP FUNKSJONER ----------
-        const toggleModal = (modalId, forceShow) => {
-            const modal = document.getElementById(modalId);
-            if (forceShow) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
+                `).join('');
             }
         }
 
-        const openAiHelpModal = () => {
-            const isDetailsViewActive = !views['details-view'].classList.contains('hidden');
+        function viewSavedRecipe(title) {
+            const recipe = savedRecipes.find(r => r.title === title);
+            if (recipe) {
+                selectedRecipe = recipe;
+                renderRecipeDetails();
+                showView('details-view', 'saved-view');
+            }
+        }
+        
+        // Måltid-velger funksjoner
+        function setDefaultMealType() {
+            const hour = new Date().getHours();
+            let meal = 'Middag';
+            if (hour >= 5 && hour < 10) meal = 'Frokost';
+            else if (hour >= 10 && hour < 15) meal = 'Lunsj';
+            else if (hour >= 21 || hour < 5) meal = 'Kveldsmat';
+            
+            const btn = mealTypeSelector.querySelector(`[data-meal="${meal}"]`);
+            if(btn) {
+                btn.click();
+            }
+        }
 
-            if (isDetailsViewActive && selectedRecipe) {
+        function handleMealTypeSelect(event) {
+            const clickedButton = event.target.closest('.meal-btn');
+            if (!clickedButton) return;
+            
+            mealTypeSelector.querySelectorAll('.meal-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-white', 'text-slate-700');
+            });
+            
+            clickedButton.classList.add('bg-indigo-600', 'text-white');
+            clickedButton.classList.remove('bg-white', 'text-slate-700');
+        }
+
+        // ---------- AI CHAT MODAL FUNKSJONER ----------
+        
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.toggle('hidden', !show);
+            }
+        }
+
+        function openAiHelpModal() {
+            const detailsViewActive = !views.details.classList.contains('hidden');
+            aiConversation = []; // Nullstill samtalen hver gang
+            
+            if (detailsViewActive && selectedRecipe) {
                 aiModalTitle.textContent = `Spørsmål om: ${selectedRecipe.title}`;
-                 aiConversation = [{
-                    role: "user", parts: [{ text: `Kontekst: Jeg ser på en oppskrift som heter "${selectedRecipe.title}". Svar kort og hjelpsomt på mine neste spørsmål om denne oppskriften.` }]
-                }, {
-                    role: "model", parts: [{ text: `Ok, jeg er klar til å hjelpe deg med oppskriften på ${selectedRecipe.title}! Hva lurer du på?` }]
-                }];
+                aiConversation.push({ role: "model", parts: [{ text: `Ok, jeg er klar til å hjelpe deg med oppskriften på ${selectedRecipe.title}! Hva lurer du på?` }] });
             } else {
                 aiModalTitle.textContent = 'Spør Kjøleskaps-kokken';
-                aiConversation = [{
-                    role: "user", parts: [{ text: `Du er "Kjøleskaps-kokken", en generell og hjelpsom AI-assistent for alt som har med mat og matlaging å gjøre. Svar på brukerens spørsmål.` }]
-                }, {
-                    role: "model", parts: [{ text: "Hei! Jeg er Kjøleskaps-kokken. Spør meg om hva som helst som har med mat å gjøre!" }]
-                }];
+                aiConversation.push({ role: "model", parts: [{ text: "Hei! Jeg er Kjøleskaps-kokken. Spør meg om hva som helst som har med mat å gjøre!" }] });
             }
             renderAiChat();
             toggleModal('ai-help-modal', true);
             setTimeout(() => aiQuestionInput.focus(), 100);
         }
-
-        const renderAiChat = () => {
-            aiChatBox.innerHTML = '';
-            // Viser alle meldinger bortsett fra den første (system-prompt)
-            aiConversation.slice(1).forEach(msg => {
-                const div = document.createElement('div');
-                div.className = `p-3 rounded-lg max-w-xs ${msg.role === 'user' ? 'bg-indigo-100 self-end' : 'bg-slate-200 self-start'}`;
-                // Bruker innerText for sikkerhet mot HTML-injeksjon
-                div.innerText = msg.parts[0].text;
-                aiChatBox.appendChild(div);
-            });
+        
+        function renderAiChat() {
+            aiChatBox.innerHTML = aiConversation.map(msg => `
+                <div class="p-3 rounded-lg ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-900 ml-auto' : 'bg-slate-100 text-slate-800 mr-auto'}" style="max-width: 80%;">
+                    ${msg.parts[0].text.replace(/\n/g, '<br>')}
+                </div>
+            `).join('');
             aiChatBox.scrollTop = aiChatBox.scrollHeight;
         }
+        
+        async function handleAiSubmit(event) {
+            event.preventDefault();
+            const userQuestion = aiQuestionInput.value.trim();
+            if (!userQuestion) return;
 
-        const handleSendAiMessage = async () => {
-            const question = aiQuestionInput.value.trim();
-            if (!question) return;
-
-            aiConversation.push({ role: "user", parts: [{ text: question }] });
+            aiConversation.push({ role: "user", parts: [{ text: userQuestion }] });
             renderAiChat();
             aiQuestionInput.value = '';
-            aiSendBtn.disabled = true;
+            aiChatLoader.classList.remove('hidden');
+            aiQuestionForm.style.display = 'none';
 
             try {
-                const schema = { type: "STRING" }; // Forventer et enkelt tekstsvar
-                // Sender hele samtalen for kontekst
-                const userPrompt = aiConversation.map(m => `${m.role}: ${m.parts[0].text}`).join('\n');
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conversation: aiConversation })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Noe gikk galt på serveren.');
+                }
                 
-                const result = await callApi('/api/generate', { userPrompt, schema });
-                
-                // Svaret fra serveren er allerede JSON, så vi trenger ikke parse to ganger
-                const answer = result.text; // Antar at serveren sender { text: "svar" }
-                aiConversation.push({ role: "model", parts: [{ text: answer }] });
-                
+                const data = await response.json();
+                aiConversation.push({ role: "model", parts: [{ text: data.text }] });
+
             } catch (error) {
-                console.error("AI chat-feil:", error);
-                 aiConversation.push({ role: "model", parts: [{ text: `Beklager, noe gikk galt: ${error.message}` }] });
+                console.error("AI chat error:", error);
+                aiConversation.push({ role: "model", parts: [{ text: `Beklager, noe gikk galt: ${error.message}` }] });
             } finally {
                 renderAiChat();
-                aiSendBtn.disabled = false;
+                aiChatLoader.classList.add('hidden');
+                aiQuestionForm.style.display = 'flex';
                 aiQuestionInput.focus();
             }
         }
-        
-        // ---------- GJØR FUNKSJONER TILGJENGELIG FOR HTML (onclick) ----------
-        window.showView = showView;
-        window.saveRecipe = saveRecipe;
-        window.removeSavedRecipe = removeSavedRecipe;
-        window.selectAndShowSavedRecipe = selectAndShowSavedRecipe;
-        window.toggleModal = toggleModal;
-        
-        // ---------- EVENT LISTENERS (Setter opp knapper osv.) ----------
-        addIngredientBtn.addEventListener('click', () => {
-            const ing = ingredientInput.value.trim();
-            if (ing && !ingredients.includes(ing)) {
-                ingredients.push(ing);
-                renderIngredients();
-                ingredientInput.value = '';
-            }
-            ingredientInput.focus();
-        });
-
-        ingredientInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') addIngredientBtn.click();
-        });
-
-        ingredientsList.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-ing-btn');
-            if (removeBtn) {
-                const index = removeBtn.dataset.index;
-                ingredients.splice(index, 1);
-                renderIngredients();
-            }
-        });
-
-        findRecipesBtn.addEventListener('click', handleFindRecipes);
-        
-        mealTypeSelector.addEventListener('click', (e) => {
-            if (e.target.classList.contains('meal-type-btn')) {
-                mealTypeSelector.querySelectorAll('.meal-type-btn').forEach(btn => btn.classList.remove('selected'));
-                e.target.classList.add('selected');
-            }
-        });
-
-        aiHelpFab.addEventListener('click', openAiHelpModal);
-        aiSendBtn.addEventListener('click', handleSendAiMessage);
-        aiQuestionInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') aiSendBtn.click();
-        });
-        
-        // ---------- INITIALIZATION (Starter appen) ----------
-        loadSavedRecipes();
-        renderIngredients();
-        setDefaultMealType();
-        showView('home-view');
-    });
-</script>
+    </script>
 </body>
 </html>
+
+
 
