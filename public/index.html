@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kjøleskaps-kokken</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
-    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap)" rel="stylesheet">
-    <script src="[https://unpkg.com/@phosphor-icons/web](https://unpkg.com/@phosphor-icons/web)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc; /* slate-50 */
         }
         .background-image {
-            background-image: url('[https://storage.googleapis.com/maker-studio-project-media-prod/products/40893/58a50f75-7b0a-4b95-a226-c28341682d3f.jpg](https://storage.googleapis.com/maker-studio-project-media-prod/products/40893/58a50f75-7b0a-4b95-a226-c28341682d3f.jpg)');
+            background-image: url('https://storage.googleapis.com/maker-studio-project-media-prod/products/40893/58a50f75-7b0a-4b95-a226-c28341682d3f.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -214,8 +214,9 @@
         window.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
     }
     
+    // Vent til hele HTML-dokumentet er lastet og klart før skriptet kjører
     document.addEventListener('DOMContentLoaded', () => {
-        // ---------- STATE ----------
+        // ---------- STATE (Appens minne) ----------
         let ingredients = [];
         const MIN_INGREDIENTS = 3;
         let generatedRecipes = [];
@@ -225,7 +226,7 @@
         let currentView = 'home-view';
         let aiConversation = [];
 
-        // ---------- DOM ELEMENTS ----------
+        // ---------- DOM ELEMENTS (Koblinger til HTML) ----------
         const views = {
             'home-view': document.getElementById('home-view'),
             'results-view': document.getElementById('results-view'),
@@ -255,24 +256,31 @@
 
         // ---------- FUNKSJONER ----------
 
-        function showView(viewName) {
+        // Bytter mellom de ulike "sidene" i appen
+        const showView = (viewName) => {
             if (!views[viewName]) {
                 console.error(`View '${viewName}' finnes ikke.`);
                 return;
             }
-            previousView = currentView;
+            // Lagrer den forrige siden så "tilbake"-knappen fungerer
+            if (currentView !== viewName) {
+                previousView = currentView;
+            }
             currentView = viewName;
 
+            // Gjemmer alle sidene, og viser kun den vi vil se
             Object.values(views).forEach(view => view.classList.add('hidden'));
             views[viewName].classList.remove('hidden');
 
+            // Spesiallogikk for "lagrede oppskrifter"-siden
             if (viewName === 'saved-view') {
                 renderSavedRecipes();
             }
-            window.scrollTo(0, 0);
+            window.scrollTo(0, 0); // Scroller til toppen av siden
         }
 
-        function renderIngredients() {
+        // Viser ingrediensene som er lagt til
+        const renderIngredients = () => {
             ingredientsList.innerHTML = '';
             ingredients.forEach((ing, index) => {
                 const tag = document.createElement('div');
@@ -288,7 +296,8 @@
             updateFindRecipesButton();
         }
 
-        function updateFindRecipesButton() {
+        // Oppdaterer "Finn Oppskrifter"-knappen og meldingen over
+        const updateFindRecipesButton = () => {
             const remaining = MIN_INGREDIENTS - ingredients.length;
             if (remaining > 0) {
                 findRecipesBtn.disabled = true;
@@ -307,12 +316,14 @@
             }
         }
         
-        function getSelectedMealType() {
+        // Finner ut hvilket måltid som er valgt
+        const getSelectedMealType = () => {
             const selectedBtn = mealTypeSelector.querySelector('.selected');
             return selectedBtn ? selectedBtn.dataset.meal : 'middag';
         }
         
-        function setDefaultMealType() {
+        // Velger automatisk måltid basert på klokkeslett
+        const setDefaultMealType = () => {
             const hour = new Date().getHours();
             let meal = 'middag'; // Standard
             if (hour >= 5 && hour < 11) meal = 'frokost';
@@ -325,7 +336,8 @@
             });
         }
 
-        async function handleFindRecipes() {
+        // Kjører når man trykker "Finn Oppskrifter"
+        const handleFindRecipes = async () => {
             showView('results-view');
             resultsLoader.classList.remove('hidden');
             resultsError.classList.add('hidden');
@@ -342,11 +354,7 @@
                 generatedRecipes = recipesData.recipes;
                 
                 resultsLoader.classList.add('hidden');
-
-                // Simulerer bildehenting med placeholder
-                const images = generatedRecipes.map(recipe => `https://placehold.co/600x400/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}`);
-
-                renderResults(generatedRecipes, images);
+                renderResults(generatedRecipes);
 
             } catch (error) {
                 console.error("Feil ved henting av oppskrifter:", error);
@@ -360,7 +368,8 @@
             }
         }
 
-        async function callApi(endpoint, body) {
+        // Generell funksjon for å snakke med vår backend-server
+        const callApi = async (endpoint, body) => {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -383,7 +392,8 @@
             return response.json();
         }
 
-        async function generateRecipes(numPeople, numRecipes, calories, protein, mealType) {
+        // Forbereder og sender forespørsel om å lage oppskrifter
+        const generateRecipes = async (numPeople, numRecipes, calories, protein, mealType) => {
              const schema = {
                 type: "OBJECT",
                 properties: {
@@ -423,32 +433,37 @@
             return JSON.parse(result.text);
         }
 
-        function renderResults(recipes, images) {
+        // Viser resultatene på resultatsiden
+        const renderResults = (recipes) => {
             resultsContainer.innerHTML = '';
             recipes.forEach((recipe, index) => {
                 const card = document.createElement('div');
                 card.className = 'bg-white rounded-lg shadow overflow-hidden cursor-pointer transform hover:-translate-y-1 transition-transform';
                 card.innerHTML = `
                     <div class="w-full h-48 bg-slate-200 flex items-center justify-center">
-                         <img src="${images[index]}" alt="${recipe.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='[https://placehold.co/600x400/fecaca/991b1b?text=Bildefeil](https://placehold.co/600x400/fecaca/991b1b?text=Bildefeil)';">
+                         <img src="https://placehold.co/600x400/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x400/fecaca/991b1b?text=Bildefeil';">
                     </div>
                     <div class="p-4">
                         <h3 class="font-bold text-lg">${recipe.title}</h3>
                     </div>
                 `;
-                card.addEventListener('click', () => selectRecipe(index));
+                card.addEventListener('click', () => selectRecipe(index, recipes));
                 resultsContainer.appendChild(card);
             });
         }
-
-        function selectRecipe(index) {
-            selectedRecipe = generatedRecipes[index] || savedRecipes[index];
+        
+        // Kjører når man velger en spesifikk oppskrift
+        const selectRecipe = (index, recipeList) => {
+            selectedRecipe = recipeList[index];
             renderRecipeDetails();
             showView('details-view');
         }
 
-        function renderRecipeDetails() {
+        // Viser detaljene for en valgt oppskrift
+        const renderRecipeDetails = () => {
             const recipe = selectedRecipe;
+            if (!recipe) return;
+
             const isSaved = savedRecipes.some(r => r.title === recipe.title);
 
             let saveButtonHtml = '';
@@ -474,7 +489,7 @@
                 </div>
                 
                 <div class="w-full h-64 md:h-80 rounded-lg bg-slate-200 mb-6 overflow-hidden">
-                    <img src="[https://placehold.co/800x600/E2E8F0/475569?text=$](https://placehold.co/800x600/E2E8F0/475569?text=$){encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover">
+                    <img src="https://placehold.co/800x600/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover">
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8">
@@ -499,8 +514,9 @@
                 </div>
             `;
         }
-
-        function loadSavedRecipes() {
+        
+        // ---------- LAGREDE OPPSKRIFTER FUNKSJONER ----------
+        const loadSavedRecipes = () => {
             try {
                 const recipesJSON = localStorage.getItem('savedRecipes');
                 savedRecipes = recipesJSON ? JSON.parse(recipesJSON) : [];
@@ -516,7 +532,7 @@
             }
         }
         
-        function saveRecipe() {
+        const saveRecipe = () => {
             if (selectedRecipe && !savedRecipes.some(r => r.title === selectedRecipe.title)) {
                 savedRecipes.push(structuredClone(selectedRecipe));
                 localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
@@ -525,14 +541,14 @@
             }
         }
         
-        function removeSavedRecipe(index) {
+        const removeSavedRecipe = (index) => {
             savedRecipes.splice(index, 1);
             localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
             renderSavedRecipes();
             loadSavedRecipes();
         }
         
-        function renderSavedRecipes() {
+        const renderSavedRecipes = () => {
             savedRecipesContainer.innerHTML = '';
             const hasRecipes = savedRecipes.length > 0;
             noSavedRecipes.classList.toggle('hidden', hasRecipes);
@@ -542,7 +558,7 @@
                 card.className = 'bg-white rounded-lg shadow overflow-hidden group';
                 card.innerHTML = `
                      <div class="w-full h-48 bg-slate-200 overflow-hidden relative">
-                         <img src="[https://placehold.co/600x400/E2E8F0/475569?text=$](https://placehold.co/600x400/E2E8F0/475569?text=$){encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-300" onclick="selectAndShowSavedRecipe(${index})">
+                         <img src="https://placehold.co/600x400/E2E8F0/475569?text=${encodeURIComponent(recipe.title)}" alt="${recipe.title}" class="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-300" onclick="selectAndShowSavedRecipe(${index})">
                          <button class="absolute top-2 right-2 bg-white text-red-500 rounded-full p-1.5 shadow hover:bg-red-100 transition" onclick="removeSavedRecipe(${index})">
                             <i class="ph-fill ph-trash"></i>
                          </button>
@@ -555,18 +571,12 @@
             });
         }
         
-        window.selectAndShowSavedRecipe = (index) => {
-            selectedRecipe = savedRecipes[index];
-            renderRecipeDetails();
-            showView('details-view');
+        const selectAndShowSavedRecipe = (index) => {
+            selectRecipe(index, savedRecipes);
         }
         
-        window.saveRecipe = saveRecipe;
-        window.removeSavedRecipe = removeSavedRecipe;
-        window.showView = showView;
-        window.selectRecipe = selectRecipe;
-
-        function toggleModal(modalId, forceShow) {
+        // ---------- AI HJELP FUNKSJONER ----------
+        const toggleModal = (modalId, forceShow) => {
             const modal = document.getElementById(modalId);
             if (forceShow) {
                 modal.classList.remove('hidden');
@@ -575,7 +585,7 @@
             }
         }
 
-        function openAiHelpModal() {
+        const openAiHelpModal = () => {
             const isDetailsViewActive = !views['details-view'].classList.contains('hidden');
 
             if (isDetailsViewActive && selectedRecipe) {
@@ -598,18 +608,20 @@
             setTimeout(() => aiQuestionInput.focus(), 100);
         }
 
-        function renderAiChat() {
+        const renderAiChat = () => {
             aiChatBox.innerHTML = '';
+            // Viser alle meldinger bortsett fra den første (system-prompt)
             aiConversation.slice(1).forEach(msg => {
                 const div = document.createElement('div');
                 div.className = `p-3 rounded-lg max-w-xs ${msg.role === 'user' ? 'bg-indigo-100 self-end' : 'bg-slate-200 self-start'}`;
+                // Bruker innerText for sikkerhet mot HTML-injeksjon
                 div.innerText = msg.parts[0].text;
                 aiChatBox.appendChild(div);
             });
             aiChatBox.scrollTop = aiChatBox.scrollHeight;
         }
 
-        async function handleSendAiMessage() {
+        const handleSendAiMessage = async () => {
             const question = aiQuestionInput.value.trim();
             if (!question) return;
 
@@ -619,13 +631,14 @@
             aiSendBtn.disabled = true;
 
             try {
-                const schema = { type: "STRING" };
-                const systemPrompt = aiConversation[0].parts[0].text;
-                const userPrompt = aiConversation.slice(1).map(m => `${m.role}: ${m.parts[0].text}`).join('\n');
+                const schema = { type: "STRING" }; // Forventer et enkelt tekstsvar
+                // Sender hele samtalen for kontekst
+                const userPrompt = aiConversation.map(m => `${m.role}: ${m.parts[0].text}`).join('\n');
                 
-                const result = await callApi('/api/generate', { systemPrompt, userPrompt, schema });
+                const result = await callApi('/api/generate', { userPrompt, schema });
                 
-                const answer = JSON.parse(result.text);
+                // Svaret fra serveren er allerede JSON, så vi trenger ikke parse to ganger
+                const answer = result.text; // Antar at serveren sender { text: "svar" }
                 aiConversation.push({ role: "model", parts: [{ text: answer }] });
                 
             } catch (error) {
@@ -638,6 +651,14 @@
             }
         }
         
+        // ---------- GJØR FUNKSJONER TILGJENGELIG FOR HTML (onclick) ----------
+        window.showView = showView;
+        window.saveRecipe = saveRecipe;
+        window.removeSavedRecipe = removeSavedRecipe;
+        window.selectAndShowSavedRecipe = selectAndShowSavedRecipe;
+        window.toggleModal = toggleModal;
+        
+        // ---------- EVENT LISTENERS (Setter opp knapper osv.) ----------
         addIngredientBtn.addEventListener('click', () => {
             const ing = ingredientInput.value.trim();
             if (ing && !ingredients.includes(ing)) {
@@ -653,8 +674,9 @@
         });
 
         ingredientsList.addEventListener('click', (e) => {
-            if (e.target.closest('.remove-ing-btn')) {
-                const index = e.target.closest('.remove-ing-btn').dataset.index;
+            const removeBtn = e.target.closest('.remove-ing-btn');
+            if (removeBtn) {
+                const index = removeBtn.dataset.index;
                 ingredients.splice(index, 1);
                 renderIngredients();
             }
@@ -675,6 +697,7 @@
             if (e.key === 'Enter') aiSendBtn.click();
         });
         
+        // ---------- INITIALIZATION (Starter appen) ----------
         loadSavedRecipes();
         renderIngredients();
         setDefaultMealType();
@@ -683,3 +706,4 @@
 </script>
 </body>
 </html>
+
