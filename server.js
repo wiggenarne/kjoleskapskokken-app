@@ -2,7 +2,6 @@
 const express = require('express');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const fetch = require('node-fetch'); // Sørger for at denne er i bruk
 require('dotenv').config(); // Laster inn miljøvariabler
 
 // Initialiserer Express-appen
@@ -16,7 +15,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API-endepunkt for å generere oppskrifter (Denne fungerer)
+// API-endepunkt for å generere oppskrifter
 app.post('/api/generate-recipes', async (req, res) => {
     try {
         const { userPrompt, systemPrompt, schema } = req.body;
@@ -41,7 +40,7 @@ app.post('/api/generate-recipes', async (req, res) => {
     }
 });
 
-// **ENDELIG, ROBUST ENDEPUNKT FOR BILDER**
+// **ENDELIG FIKS: Bytter til gratis bildemodell**
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -49,43 +48,32 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: 'Mangler prompt for bildegenerering.' });
         }
         
-        const API_KEY = process.env.GEMINI_API_KEY;
-        // Bytter til den stabile Imagen-modellen
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`;
+        // Velger modellen som kan generere både tekst og bilder (gratis)
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-preview-05-20' });
+
+        const fullPrompt = `Generer et fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet.`;
         
-        const payload = {
-            instances: [{ "prompt": `Fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet` }],
-            parameters: { "sampleCount": 1 }
-        };
+        const result = await model.generateContent([fullPrompt]);
+        const response = await result.response;
+        
+        // Finner bildet i responsen
+        const imagePart = response.candidates[0].content.parts.find(part => part.inlineData);
 
-        const imageResponse = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        // Forbedret feil-logging
-        if (!imageResponse.ok) {
-            const errorBody = await imageResponse.text();
-            console.error('Bildegenererings-API feilet:', errorBody);
-            throw new Error(`API-feil: ${errorBody}`);
+        if (!imagePart) {
+            throw new Error('Modellen returnerte ikke et bilde.');
         }
 
-        const imageData = await imageResponse.json();
-        const base64Image = imageData.predictions?.[0]?.bytesBase64Encoded;
-
-        if (!base64Image) {
-            throw new Error('API-en returnerte ikke et gyldig bilde.');
-        }
-
+        const base64Image = imagePart.inlineData.data;
         res.json({ base64Image });
+
     } catch (error) {
         console.error('Total feil under bildegenerering:', error);
         res.status(500).json({ error: error.message || 'En ukjent intern feil oppstod under bildegenerering.' });
     }
 });
 
-// API-endepunkt for AI-chat (Denne fungerer)
+
+// API-endepunkt for AI-chat
 app.post('/api/chat', async (req, res) => {
     try {
         const { conversation } = req.body;
@@ -109,4 +97,5 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
+
 
