@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cors = require('cors'); // Importerer CORS-biblioteket
+const fetch = require('node-fetch'); // Sørger for at denne er i bruk
 require('dotenv').config(); // Laster inn miljøvariabler
 
 // Initialiserer Express-appen
@@ -13,14 +14,17 @@ const port = process.env.PORT || 3000;
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Middleware
-app.use(cors()); // Tillater forespørsler fra andre domener (som forhåndsvisningen)
+app.use(cors()); // Tillater forespørsler fra andre domener
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API-endepunkt for å generere oppskrifter
+// API-endepunkt for å generere oppskrifter (Denne fungerer)
 app.post('/api/generate-recipes', async (req, res) => {
     try {
         const { userPrompt, systemPrompt, schema } = req.body;
+        if (!userPrompt || !systemPrompt || !schema) {
+            return res.status(400).json({ error: 'Mangler nødvendig data i forespørselen.' });
+        }
         const model = genAI.getGenerativeModel({
             model: 'gemini-1.5-flash',
             systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -38,7 +42,7 @@ app.post('/api/generate-recipes', async (req, res) => {
     }
 });
 
-// ENDELIG, FORENKLET OG KORREKT ENDEPUNKT FOR BILDER
+// **ENDELIG, ROBUST ENDEPUNKT FOR BILDER**
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -46,38 +50,49 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: 'Mangler prompt for bildegenerering.' });
         }
         
-        // Vi bruker den robuste hovedmodellen til alt
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-        // Vi lager en "prompt" som består av både tekst og en forespørsel om et bilde
-        const imagePrompt = [
-            { text: `Generer et fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet.` },
-        ];
+        const API_KEY = process.env.GEMINI_API_KEY;
+        // Bytter til den stabile Imagen-modellen
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`;
         
-        const result = await model.generateContent(imagePrompt);
-        const response = await result.response;
-        
-        // Finner bildet i responsen
-        const imagePart = response.candidates[0].content.parts.find(part => part.inlineData);
+        const payload = {
+            instances: [{ "prompt": `Fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet` }],
+            parameters: { "sampleCount": 1 }
+        };
 
-        if (!imagePart) {
-            console.error("Modellen klarte ikke å generere et bilde. Respons:", response.text());
-            throw new Error('Modellen returnerte ikke et gyldig bilde.');
+        const imageResponse = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        // Forbedret feil-logging
+        if (!imageResponse.ok) {
+            const errorBody = await imageResponse.text();
+            console.error('Bildegenererings-API feilet:', errorBody);
+            throw new Error(`API-feil: ${errorBody}`);
         }
 
-        const base64Image = imagePart.inlineData.data;
-        res.json({ base64Image });
+        const imageData = await imageResponse.json();
+        const base64Image = imageData.predictions?.[0]?.bytesBase64Encoded;
 
+        if (!base64Image) {
+            throw new Error('API-en returnerte ikke et gyldig bilde.');
+        }
+
+        res.json({ base64Image });
     } catch (error) {
         console.error('Total feil under bildegenerering:', error);
         res.status(500).json({ error: error.message || 'En ukjent intern feil oppstod under bildegenerering.' });
     }
 });
 
-// API-endepunkt for AI-chat
+// API-endepunkt for AI-chat (Denne fungerer)
 app.post('/api/chat', async (req, res) => {
     try {
         const { conversation } = req.body;
+        if (!conversation) {
+            return res.status(400).json({ error: 'Mangler samtalehistorikk.' });
+        }
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const chat = model.startChat({ history: conversation.slice(0, -1) });
         const lastMessage = conversation[conversation.length - 1].parts[0].text;
@@ -94,4 +109,5 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
+
 
