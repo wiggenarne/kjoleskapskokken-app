@@ -2,7 +2,6 @@
 const express = require('express');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const fetch = require('node-fetch'); // Sørger for at denne er i bruk
 require('dotenv').config(); // Laster inn miljøvariabler
 
 // Initialiserer Express-appen
@@ -20,9 +19,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/generate-recipes', async (req, res) => {
     try {
         const { userPrompt, systemPrompt, schema } = req.body;
-        if (!userPrompt || !systemPrompt || !schema) {
-            return res.status(400).json({ error: 'Mangler nødvendig data i forespørselen.' });
-        }
         const model = genAI.getGenerativeModel({
             model: 'gemini-1.5-flash',
             systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -32,8 +28,7 @@ app.post('/api/generate-recipes', async (req, res) => {
             },
         });
         const result = await model.generateContent(userPrompt);
-        const response = result.response;
-        const text = response.text();
+        const text = result.response.text();
         res.json({ text });
     } catch (error) {
         console.error('Feil under generering av oppskrift:', error);
@@ -41,7 +36,7 @@ app.post('/api/generate-recipes', async (req, res) => {
     }
 });
 
-// **ENDELIG, ROBUST LØSNING MED DIREKTE API-KALL**
+// **ENDELIG, FORENKLET OG KORREKT ENDEPUNKT FOR BILDER**
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -49,38 +44,23 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: 'Mangler prompt for bildegenerering.' });
         }
         
-        const API_KEY = process.env.GEMINI_API_KEY;
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-image-preview:generateContent?key=${API_KEY}`;
+        // Vi bruker den robuste hovedmodellen til alt
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-        const fullPrompt = `Generer et fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet.`;
-
-        const payload = {
-            contents: [{
-                parts: [{ text: fullPrompt }]
-            }],
-            generationConfig: {
-                responseModalities: ['IMAGE'] // Vi ber spesifikt om et bilde
-            },
-        };
-
-        const imageResponse = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!imageResponse.ok) {
-            const errorBody = await imageResponse.text();
-            console.error('Bildegenererings-API feilet:', errorBody);
-            throw new Error(`API-feil: ${errorBody}`);
-        }
+        // Vi lager en "prompt" som består av både tekst og en forespørsel om et bilde
+        const imagePrompt = [
+            { text: `Generer et fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet.` },
+        ];
         
-        const result = await imageResponse.json();
-        const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        const result = await model.generateContent(imagePrompt);
+        const response = await result.response;
+        
+        // Finner bildet i responsen
+        const imagePart = response.candidates[0].content.parts.find(part => part.inlineData);
 
         if (!imagePart) {
-             console.error("API respons manglet bilde-del:", result);
-            throw new Error('Modellen returnerte ikke et bilde.');
+            console.error("Modellen klarte ikke å generere et bilde. Respons:", response.text());
+            throw new Error('Modellen returnerte ikke et gyldig bilde.');
         }
 
         const base64Image = imagePart.inlineData.data;
@@ -97,15 +77,11 @@ app.post('/api/generate-image', async (req, res) => {
 app.post('/api/chat', async (req, res) => {
     try {
         const { conversation } = req.body;
-        if (!conversation) {
-            return res.status(400).json({ error: 'Mangler samtalehistorikk.' });
-        }
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const chat = model.startChat({ history: conversation.slice(0, -1) });
         const lastMessage = conversation[conversation.length - 1].parts[0].text;
         const result = await chat.sendMessage(lastMessage);
-        const response = result.response;
-        const text = response.text();
+        const text = result.response.text();
         res.json({ text });
     } catch (error) {
         console.error('Feil under AI-chat:', error);
