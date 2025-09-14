@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fetch = require('node-fetch'); // Sørger for at denne er i bruk
 require('dotenv').config(); // Laster inn miljøvariabler
 
 // Initialiserer Express-appen
@@ -40,7 +41,7 @@ app.post('/api/generate-recipes', async (req, res) => {
     }
 });
 
-// **ENDELIG KORREKSJON: Bytter til korrekt gratis bildemodell**
+// **ENDELIG, ROBUST LØSNING MED DIREKTE API-KALL**
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -48,19 +49,37 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: 'Mangler prompt for bildegenerering.' });
         }
         
-        // Bytter til den KORREKTE modellen for bildegenerering i gratis-tier
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-image-preview' });
+        const API_KEY = process.env.GEMINI_API_KEY;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-image-preview:generateContent?key=${API_KEY}`;
 
         const fullPrompt = `Generer et fotorealistisk og appetittvekkende bilde av ${prompt}, servert på en tallerken, profesjonell matfotografering, høy kvalitet.`;
+
+        const payload = {
+            contents: [{
+                parts: [{ text: fullPrompt }]
+            }],
+            generationConfig: {
+                responseModalities: ['IMAGE'] // Vi ber spesifikt om et bilde
+            },
+        };
+
+        const imageResponse = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!imageResponse.ok) {
+            const errorBody = await imageResponse.text();
+            console.error('Bildegenererings-API feilet:', errorBody);
+            throw new Error(`API-feil: ${errorBody}`);
+        }
         
-        const result = await model.generateContent([fullPrompt]);
-        const response = await result.response;
-        
-        // Finner bildet i responsen
-        const imagePart = response.candidates[0].content.parts.find(part => part.inlineData);
+        const result = await imageResponse.json();
+        const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
 
         if (!imagePart) {
-            console.error("API respons manglet bilde-del:", response.candidates[0].content.parts);
+             console.error("API respons manglet bilde-del:", result);
             throw new Error('Modellen returnerte ikke et bilde.');
         }
 
@@ -98,4 +117,5 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
+
 
