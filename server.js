@@ -2,6 +2,7 @@
 const express = require('express');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const cors = require('cors'); // Importerer CORS-biblioteket
 require('dotenv').config(); // Laster inn miljøvariabler
 
 // Initialiserer Express-appen
@@ -12,6 +13,7 @@ const port = process.env.PORT || 3000;
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Middleware
+app.use(cors()); // Tillater forespørsler fra andre domener (som forhåndsvisningen)
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -36,7 +38,7 @@ app.post('/api/generate-recipes', async (req, res) => {
     }
 });
 
-// **ENDELIG, FORENKLET OG KORREKT ENDEPUNKT FOR BILDER**
+// ENDELIG, FORENKLET OG KORREKT ENDEPUNKT FOR BILDER
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -72,7 +74,6 @@ app.post('/api/generate-image', async (req, res) => {
     }
 });
 
-
 // API-endepunkt for AI-chat
 app.post('/api/chat', async (req, res) => {
     try {
@@ -93,5 +94,4 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
-
 
