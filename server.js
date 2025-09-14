@@ -111,3 +111,4 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
+
