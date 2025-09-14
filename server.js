@@ -31,7 +31,10 @@ app.post('/api/generate', async (req, res) => {
         // Velger og konfigurerer AI-modellen
         const model = genAI.getGenerativeModel({
             model: 'gemini-1.5-flash',
-            systemInstruction: systemPrompt,
+            // **RETTET KODE:** Pakker systemPrompt inn i riktig objektstruktur
+            systemInstruction: {
+                parts: [{ text: systemPrompt }],
+            },
             generationConfig: {
                 responseMimeType: 'application/json',
                 responseSchema: schema,
@@ -58,4 +61,5 @@ app.post('/api/generate', async (req, res) => {
 app.listen(port, () => {
     console.log(`Serveren kjører på http://localhost:${port}`);
 });
+
 
